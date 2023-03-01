@@ -1,0 +1,54 @@
+{% extends 'base.jinja-html' %}
+{% block title %}New Composer{% endblock %}
+{% block content %}
+  <div class="form-wrapper">
+    <form method="post" class="form" action="/performers/create">
+      <h3 class="form-heading">Add your Performer<a href="{{ url_for('api.index') }}" title="Back to homepage"><i class="fa fa-home pull-right"></i></a></h3>
+      {{ form.csrf_token }}
+      <div class="mb-3">
+       <label for="name">Name</label>
+        {{ form.name(class_ = 'form-control', autofocus = true) }}
+      </div>
+      <div class="mb-3">
+          <label>Years</label>
+          <div class="row">
+            <div class="col-6">
+              {{ form.born(class_ = 'form-control', placeholder='Born', autofocus = true) }}
+            </div>
+            <div class="col-6">
+              {{ form.deceased(class_ = 'form-control', placeholder='Deceased', autofocus = true) }}
+            </div>
+          </div>
+      </div>
+      <div class="mb-3">
+        <label for="nationality">Nationality by Birth</label>
+        {{ form.nationality(class_ = 'form-control', placeholder='Austria', autofocus = true) }}
+      </div>
+      {# <div class="mb-3">
+          <label for="period">Period</label>
+          {{ form.period(class_ = 'form-control', autofocus = true) }}
+        </div>
+      <div class="mb-3">
+        <label for="performers" class="form-label">Performers</label>
+        <small>Ctrl+Click to select multiple</small>
+        {{ form.performers(class_ = 'form-control', placeholder='Performer, separated by commas', autofocus = true) }}
+      </div>
+      
+      <div class="mb-3" class="form-label">
+          <label for="titles">Titles</label>
+          {{ form.titles(class_ = 'form-control', placeholder='pianist, conductor', autofocus = true) }}
+       </div>
+      
+       <div class="mb-3" class="form-label">
+          <label for="compositions">Compositions</label>
+          {{ form.compositions(class_ = 'form-control', placeholder='Ave Maria', autofocus = true) }}
+       </div>
+
+       <div class="mb-3" class="form-label">
+            <label for="contemporaries">Contemporaries</label>
+            {{ form.contemporaries(class_ = 'form-control', autofocus = true) }}
+       </div> #}
+      <input type="submit" value="Create Performer" class="btn btn-primary btn-lg btn-block">
+    </form>
+  </div>
+{% endblock %}

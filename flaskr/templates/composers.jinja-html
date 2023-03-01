@@ -1,0 +1,10 @@
+{% extends 'base.html' %} {% block title %}Composers{% endblock %} {% block
+content %} {% for composer in composers %}
+<h3>{{ composer.name }}</h3>
+<ul class="items">
+  {% for attr in composer.__dict__.keys()%}
+  <li>{{ attr }}</li>
+  <li>{{ composer[attr] }}</li>
+  {% endfor %}
+</ul>
+{% endfor %} {% endblock %}

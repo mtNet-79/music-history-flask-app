@@ -1,0 +1,23 @@
+{% extends "base.jinja-html" %}
+{% block title %}Home page{% endblock %}
+{% block content %}
+<div class="container">
+    <h1 class="display-1 text-center">Music History</h1>
+    <div class="row">
+        <div class="col-6 border text-center">Composers</div>
+        <div class="col-6 border text-center">Performers</div>
+    <div class="row">
+        <ul class="col-6" >
+            {% for c in data.composers %}
+            <li>{{ c.name }}</li>
+            {% endfor %}
+        </ul>
+        <ul class="col-6" >
+            {% for p in data.performers %}
+            <li>{{ p.name }}</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+</div>
+{% endblock %}
