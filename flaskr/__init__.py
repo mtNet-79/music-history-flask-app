@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate  # type: ignore
@@ -9,7 +10,8 @@ migrate = Migrate()
 
 def create_app(test_config: Optional[str] = None) -> Flask:
     # create and configure the app
-    app = Flask(__name__, template_folder='templates')
+    app = Flask(__name__)
+
     if test_config:
         app.config.from_object('config.TestingConfig')
         db.init_app(app)

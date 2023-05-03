@@ -9,8 +9,8 @@ class Nation(db.Model):  # type: ignore
     __tablename__ = 'nations'
     id = Column(Integer, primary_key=True)  # type: ignore
     name = Column(String(125), nullable=False)  # type: ignore
-    composers = db.relationship('Composer', secondary=composer_nationalities, back_populates='nations')
-    performers = db.relationship('Performer', secondary=performer_nationalities, back_populates='nations')
+    composers = db.relationship('Composer', secondary=composer_nationalities, back_populates='nationalities')
+    performers = db.relationship('Performer', secondary=performer_nationalities, back_populates='nationalities')
 
     def __init__(
         self,

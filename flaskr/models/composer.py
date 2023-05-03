@@ -32,7 +32,7 @@ class Composer(db.Model):  # type: ignore
     year_born = Column(Date)  # type: ignore
     year_deceased = Column(Date)  # type: ignore
     bio = Column(String(1000))
-    image = Column(db.LargeBinary) 
+
     performers = db.relationship(
         'Performer', secondary=composer_performer, back_populates='composers')  # type: ignore
     titles = db.relationship(

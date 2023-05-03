@@ -1,16 +1,28 @@
-from .models import Composer, Performer
+import os
+import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from .models import Composer, Performer, User
 from . import db
 from flask import request, abort, jsonify, render_template
+import requests
 from flask_cors import CORS, cross_origin  # type: ignore
 from flask import Blueprint
 # from .forms import ComposerForm
 from typing import List, Optional, Dict, Any, Union
+from .auth.auth import AuthError, jwt_required
+from bucketControl import generate_presigned_url
 
 
 api = Blueprint('api', __name__)  # type: ignore
 
 
 ITEMS_PER_PAGE: int = 10
+
+
+load_dotenv()
+
+PORT = os.getenv("PORT", 5001)
 
 
 def paginate_results(
@@ -63,8 +75,16 @@ def index() -> str:
                                ] = paginate_results(request, p_sltcn)
     data: Dict[str, List[Dict[str, Any]]] = {"composers": curr_composers_list,
                                              "performers": curr_performers_list}
-
-    return render_template("index.jinja-html", data=data)
+    
+    return jsonify(
+        {
+            "success": True,
+            "peformers": curr_performers_list,
+            "total_performers": len(p_sltcn),
+            "composers": curr_composers_list,
+            "total_composers": len(c_sltcn),
+        }
+    )
 
 
 @api.route("/composers")
@@ -106,6 +126,7 @@ def get_composers() -> str:
 
 
 @api.route("/composers/create", methods=['POST'])
+@jwt_required(allowed_roles=["user", "admin"])
 def create_composer():
     try:
         # extract form data from the request object
@@ -143,7 +164,6 @@ def create_composer():
         'composers': current_slctn,
         'total_Composers': len(slctn)
     })  # type: ignore
-    
 
 
 @api.route("/composers/<int:composer_id>")
@@ -161,6 +181,7 @@ def get_Composer(composer_id):
 
 
 @api.route("/composers/<int:pkey_id>", methods=['DELETE'])
+@jwt_required(allowed_roles=["admin"])
 def delete_composer(pkey_id):
     composer = Composer.query.filter(Composer.id == pkey_id).one_or_none()
     print(f"composer is {composer.id}")
@@ -208,6 +229,7 @@ def get_performers():
 
 
 @api.route("/performers/create", methods=['POST'])
+@jwt_required(allowed_roles=["user", "admin"])
 def create_performer():
     req_body = request.get_json()
     # printf" loads json {json.loads("
@@ -257,6 +279,7 @@ def get_performer_by_id(pkey_id):
 
 
 @api.route("/performers/<int:pkey_id>", methods=['DELETE'])
+@jwt_required(allowed_roles=["admin"])
 def delete_performer(pkey_id):
     performer = Performer.query.filter(Performer.id == pkey_id).one_or_none()
     if performer is None:
@@ -273,6 +296,100 @@ def delete_performer(pkey_id):
         'current_performers': current_view,
         'total_Performerss': len(total)
     })  # type: ignore
+    
+@api.route('/presigned-url/<path:object_key>')
+def get_presigned_url(object_key):
+    print('we in this bitch"')
+    bucket_name = 'music-history-images'
+    presigned_url = generate_presigned_url(bucket_name, object_key)
+    
+    if presigned_url is None:
+        return jsonify({'error': 'Error generating pre-signed URL'}), 500
+
+    return jsonify({'url': presigned_url})
+
+
+@api.route("/exchange_for_token", methods=["POST"])
+@cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
+def exchange_for_token():
+    print("I can hear you")
+    try:
+        client_id = request.args.get("client_id")
+        code = request.args.get("code")
+        redirect_uri = request.args.get("redirect_uri")
+        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+
+        google_response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            params={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+            }
+        )
+
+        access_token = google_response.json()["access_token"]
+        user_info_response = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        # Get user data from Google
+        user_data = user_info_response.json()
+        # Check if the user exists in your database
+        user = User.query.filter_by(oauth_id=user_data["id"]).first()
+        
+           # If the user doesn't exist, create a new user record
+        if user is None:
+            user = User(
+                oauth_provider="google",
+                oauth_id=user_data["id"],
+                email=user_data["email"],
+                first_name=user_data["given_name"],
+                last_name=user_data["family_name"],
+                avatar_url=user_data["picture"],
+                role="user",  # Assign a default role here or use logic to determine the role
+            )
+            user.insert()
+        # Generate a JWT token for the user with the necessary claims
+        jwt_token = generate_jwt_token(user)
+
+        # Return the user data and JWT token to the frontend
+        return jsonify({"user": user.format(), "token": jwt_token}), 200
+                
+    except Exception as error:
+        print(error)
+        return jsonify({"error": "Failed to exchange code for token"}), 500
+    
+def generate_jwt_token(user: User) -> str:
+    # Read your JWT secret key from the environment
+    jwt_secret = os.getenv("JWT_SECRET")
+    if jwt_secret is None:
+        raise ValueError("JWT_SECRET is not set in the environment")
+
+    # Define the JWT token expiration time
+    token_expiration = datetime.utcnow() + timedelta(hours=24)
+
+    # Define the payload for the JWT token
+    payload = {
+        "sub": user.id,  # subject (user ID)
+        "role": user.role,  # user role
+        "exp": token_expiration,  # expiration time
+    }
+
+    # Encode and sign the JWT token
+    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+
+    return token
+
+
+
+def decode_jwt_token(encoded_jwt):
+    jwt_secret = os.getenv("JWT_SECRET")
+    decoded_jwt = jwt.decode(encoded_jwt, jwt_secret, algorithms=["HS256"])
+    return decoded_jwt
 
 # ----------------------ADD PAGE-------------------------------#
 

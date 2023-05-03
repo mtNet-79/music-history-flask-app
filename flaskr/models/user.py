@@ -1,9 +1,9 @@
 # flake8: noqa
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from . import db
 from sqlalchemy import Column, String, Integer, DateTime
-from . import performer_favorites, composer_favorites
+from . import performer_favorites, composer_favorites, Composer, Performer
 
 
 class User(db.Model):  # type: ignore
@@ -15,6 +15,7 @@ class User(db.Model):  # type: ignore
     first_name = Column(String(64))  # type: ignore
     last_name = Column(String(64))  # type: ignore
     avatar_url = Column(String(256))  # type: ignore
+    role = Column(String(64))
     created_at = Column(DateTime, nullable=False,
                         default=datetime.utcnow)  # type: ignore
     favorite_composers = db.relationship('Composer', secondary=composer_favorites, lazy='subquery',
@@ -24,15 +25,16 @@ class User(db.Model):  # type: ignore
 
     def __init__(
         self,
-        oauth_provider: Column[str],
-        oauth_id: Column[str],
-        email: Column[str],
-        first_name: Column[str],
-        last_name: Column[str],
-        avatar_url: Column[str],
-        created_at: Column[datetime],
-        favorite_composers: List,  # type: ignore
-        favorite_performers: List,  # type: ignore
+        oauth_provider: str,
+        oauth_id: str,
+        email: str,
+        first_name: str,
+        last_name: str,
+        avatar_url: Optional[str] = None,
+        role: Optional[str] = None,
+        created_at: Optional[datetime] = None,
+        favorite_composers: Optional[List[Composer]] = None,
+        favorite_performers: Optional[List[Performer]] = None,
     ) -> None:
         self.oauth_provider = oauth_provider
         self.oauth_id = oauth_id
@@ -40,10 +42,12 @@ class User(db.Model):  # type: ignore
         self.first_name = first_name
         self.last_name = last_name
         self.avatar_url = avatar_url
-        self.created_at = created_at
-        self.favorite_composers = favorite_composers
-        self.favorite_performers = favorite_performers
-
+        self.role = role
+        self.created_at = created_at if created_at is not None else datetime.utcnow()
+        self.favorite_composers = favorite_composers if favorite_composers is not None else []
+        self.favorite_performers = favorite_performers if favorite_performers is not None else []
+        
+        
     def insert(self) -> None:
         print(f"Here is SELF {self}")
         db.session.add(self)
@@ -63,6 +67,7 @@ class User(db.Model):  # type: ignore
             'last_name': self.last_name,
             'email': self.email,
             'avatar_url': self.avatar_url,
+            'role': self.role,
             'favorite_performers': self.favorite_performers,
             'favorite_composers': self.favorite_composers
         }
