@@ -50,7 +50,7 @@ def create_dict(arr: List[Dict[str, Any]]) -> dict:
 
 # IMPLEMENT CROSS-ORIGIN RESOURCE SHARING FOR ALL ORIGINS
 # CORS(api, origins=["*"])
-CORS(api, resources={r"/api/*": {"origins": "*"}})
+CORS(api)
 
 
 @api.after_request
@@ -75,7 +75,7 @@ def index() -> str:
                                ] = paginate_results(request, p_sltcn)
     data: Dict[str, List[Dict[str, Any]]] = {"composers": curr_composers_list,
                                              "performers": curr_performers_list}
-    
+
     return jsonify(
         {
             "success": True,
@@ -184,7 +184,7 @@ def get_Composer(composer_id):
 @jwt_required(allowed_roles=["admin"])
 def delete_composer(pkey_id):
     composer = Composer.query.filter(Composer.id == pkey_id).one_or_none()
-    print(f"composer is {composer.id}")
+    # print(f"composer is {composer.id}")
 
     if composer is None:
         abort(404)
@@ -296,13 +296,14 @@ def delete_performer(pkey_id):
         'current_performers': current_view,
         'total_Performerss': len(total)
     })  # type: ignore
-    
+
+
 @api.route('/presigned-url/<path:object_key>')
+@cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
 def get_presigned_url(object_key):
-    print('we in this bitch"')
     bucket_name = 'music-history-images'
     presigned_url = generate_presigned_url(bucket_name, object_key)
-    
+
     if presigned_url is None:
         return jsonify({'error': 'Error generating pre-signed URL'}), 500
 
@@ -312,7 +313,7 @@ def get_presigned_url(object_key):
 @api.route("/exchange_for_token", methods=["POST"])
 @cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
 def exchange_for_token():
-    print("I can hear you")
+    # print("I can hear you")
     try:
         client_id = request.args.get("client_id")
         code = request.args.get("code")
@@ -340,8 +341,8 @@ def exchange_for_token():
         user_data = user_info_response.json()
         # Check if the user exists in your database
         user = User.query.filter_by(oauth_id=user_data["id"]).first()
-        
-           # If the user doesn't exist, create a new user record
+
+        # If the user doesn't exist, create a new user record
         if user is None:
             user = User(
                 oauth_provider="google",
@@ -358,11 +359,12 @@ def exchange_for_token():
 
         # Return the user data and JWT token to the frontend
         return jsonify({"user": user.format(), "token": jwt_token}), 200
-                
+
     except Exception as error:
         print(error)
         return jsonify({"error": "Failed to exchange code for token"}), 500
-    
+
+
 def generate_jwt_token(user: User) -> str:
     # Read your JWT secret key from the environment
     jwt_secret = os.getenv("JWT_SECRET")
@@ -383,7 +385,6 @@ def generate_jwt_token(user: User) -> str:
     token = jwt.encode(payload, jwt_secret, algorithm="HS256")
 
     return token
-
 
 
 def decode_jwt_token(encoded_jwt):

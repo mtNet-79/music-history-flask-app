@@ -22,9 +22,7 @@ class AuthError(Exception):
         self.status_code = status_code
         print(f'auth error is {error} and code is {status_code} ')
 
-
 # Auth Header
-
 '''
 @TODO implement get_token_auth_header() method
     it should attempt to get the header from the request
@@ -33,7 +31,6 @@ class AuthError(Exception):
         it should raise an AuthError if the header is malformed
     return the token part of the header
 '''
-
 
 def get_token_auth_header():
     # print(f'the req ctx {_request_ctx_stack.top}')
@@ -77,7 +74,6 @@ def get_token_auth_header():
     return true otherwise
 '''
 
-
 def check_permissions(permission, payload):
     perms = payload['permissions']
 
@@ -92,7 +88,6 @@ def check_permissions(permission, payload):
             'description': 'Permission not found.'
         }, 403)
     return True
-
 
 '''
 @TODO implement verify_decode_jwt(token) method

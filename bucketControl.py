@@ -14,11 +14,11 @@ s3 = boto3.client('s3',
 
 # print all avilable objects in said bucket
 response = s3.list_objects(Bucket='music-history-images')
-print(response)
+
 
 response = s3.put_object_acl(
     Bucket='music-history-images', Key='musichistorylogo.png', ACL='public-read')
-print(response)
+
 
 def generate_presigned_url(bucket_name, object_name, expiration=3600):
     try:
