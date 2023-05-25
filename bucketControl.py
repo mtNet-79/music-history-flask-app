@@ -8,16 +8,17 @@ from botocore.exceptions import ClientError
 load_dotenv()
 # create s3 instance
 s3 = boto3.client('s3',
-                  endpoint_url='https://s3.us-central-1.wasabisys.com',
-                  aws_access_key_id=os.environ['WASABI_ACCESS_KEY'],
-                  aws_secret_access_key=os.environ['WASABI_SECRET_KEY'])
+                  endpoint_url='https://s3.us-west-2.amazonaws.com',
+                  aws_access_key_id=os.environ['AWS_ACCESS_KEY'],
+                  aws_secret_access_key=os.environ['AWS_SECRET_KEY'])
 
 # print all avilable objects in said bucket
-response = s3.list_objects(Bucket='music-history-images')
+response = s3.list_objects(Bucket='mt-music-history')
+# print(f'my s3 response: {response}')
 
 
 response = s3.put_object_acl(
-    Bucket='music-history-images', Key='musichistorylogo.png', ACL='public-read')
+    Bucket='mt-music-history', Key='MusicHistoryLogo.jpeg', ACL='public-read')
 
 
 def generate_presigned_url(bucket_name, object_name, expiration=3600):

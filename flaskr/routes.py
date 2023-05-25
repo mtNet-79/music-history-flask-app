@@ -301,7 +301,7 @@ def delete_performer(pkey_id):
 @api.route('/presigned-url/<path:object_key>')
 @cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
 def get_presigned_url(object_key):
-    bucket_name = 'music-history-images'
+    bucket_name = 'mt-music-history'
     presigned_url = generate_presigned_url(bucket_name, object_key)
 
     if presigned_url is None:
