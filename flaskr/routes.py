@@ -332,13 +332,15 @@ def exchange_for_token():
         )
 
         access_token = google_response.json()["access_token"]
+        
         user_info_response = requests.get(
             "https://www.googleapis.com/oauth2/v2/userinfo",
             headers={"Authorization": f"Bearer {access_token}"}
         )
-
+        
         # Get user data from Google
         user_data = user_info_response.json()
+        
         # Check if the user exists in your database
         user = User.query.filter_by(oauth_id=user_data["id"]).first()
 
