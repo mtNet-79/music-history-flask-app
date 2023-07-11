@@ -63,10 +63,13 @@ class User(db.Model):  # type: ignore
     def format(self) -> dict:
         return {
             'id': self.id,
+            'oauth_provider': self.oauth_provider,
+            'oauth_id': self.oauth_id,
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
             'avatar_url': self.avatar_url,
+            'created_at': self.created_at,
             'role': self.role,
             'favorite_performers': self.favorite_performers,
             'favorite_composers': self.favorite_composers
