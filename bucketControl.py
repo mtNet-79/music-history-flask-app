@@ -4,6 +4,13 @@ import boto3
 from botocore.exceptions import ClientError
 
 
+
+
+
+
+
+
+
 # Load the environment variables from the .env file
 load_dotenv()
 # create s3 instance
@@ -13,17 +20,17 @@ s3 = boto3.client('s3',
                   aws_secret_access_key=os.environ['AWS_SECRET_KEY'])
 
 # print all avilable objects in said bucket
-response = s3.list_objects(Bucket='mt-music-history')
+# response = s3.list_objects(Bucket='mt-music-history')
 # print(f'my s3 response: {response}')
 
 
-response = s3.put_object_acl(
-    Bucket='mt-music-history', Key='MusicHistoryLogo.jpeg', ACL='public-read')
+# response = s3.put_object_acl(
+#     Bucket='mt-music-history', Key='MusicHistoryLogo.jpeg', ACL='public-read')
 
 
-def generate_presigned_url(bucket_name, object_name, expiration=3600):
+def generate_presigned_url(bucket_name, object_name, operation='get_object', expiration=3600):
     try:
-        response = s3.generate_presigned_url('get_object',
+        response = s3.generate_presigned_url(operation,
                                              Params={
                                                  'Bucket': bucket_name, 'Key': object_name},
                                              ExpiresIn=expiration)
@@ -32,3 +39,5 @@ def generate_presigned_url(bucket_name, object_name, expiration=3600):
         return None
 
     return response
+
+

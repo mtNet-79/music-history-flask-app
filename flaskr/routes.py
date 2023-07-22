@@ -1,4 +1,6 @@
 import os
+from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 import jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -18,6 +20,8 @@ api = Blueprint('api', __name__)  # type: ignore
 
 
 ITEMS_PER_PAGE: int = 10
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}  # define allowed image extensions
+
 
 
 load_dotenv()
@@ -298,10 +302,10 @@ def delete_performer(pkey_id):
     })  # type: ignore
 
 
-@api.route('/presigned-url/<path:object_key>')
+@api.route('/presigned-url/<bucket_name>/<path:object_key>')
 @cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
-def get_presigned_url(object_key):
-    bucket_name = 'mt-music-history'
+def get_presigned_url(object_key, bucket_name):
+    # bucket_name = 'mt-music-history'
     presigned_url = generate_presigned_url(bucket_name, object_key)
 
     if presigned_url is None:
@@ -310,7 +314,7 @@ def get_presigned_url(object_key):
     return jsonify({'url': presigned_url})
 
 
-@api.route("/exchange_for_token", methods=["POST"])
+@api.route("/auth/google/token", methods=["POST"])
 @cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
 def exchange_for_token():
     # print("I can hear you")
@@ -340,9 +344,10 @@ def exchange_for_token():
         
         # Get user data from Google
         user_data = user_info_response.json()
-        
+        print(f'user data {user_data}');
         # Check if the user exists in your database
         user = User.query.filter_by(oauth_id=user_data["id"]).first()
+        print(f'user 1 {user}')
 
         # If the user doesn't exist, create a new user record
         if user is None:
@@ -365,8 +370,92 @@ def exchange_for_token():
     except Exception as error:
         print(error)
         return jsonify({"error": "Failed to exchange code for token"}), 500
+    
+@api.route("/api/create-user", methods=['POST'])
+@jwt_required(allowed_roles=["user", "admin"])
+def create_user():
+    try:
+        # extract form data from the request object
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        password = request.form.get('password')
+        email = request.form.get('email')        
+        avatar = request.files['avatar']
+        
+        # check if avatar extension is allowed
+        if '.' in avatar.filename and \
+                avatar.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+            # secure the filename and save the avatar
+            filename = secure_filename(avatar.filename)
+           
+        else:
+            return jsonify({'success': False, 'error': 'Invalid avatar file format'}), 400
+
+        hashed_password = generate_password_hash(password)
+
+        user = User(oauth_provider=None, oauth_id=None, first_name=first_name, last_name=last_name, email=email,
+                    avatar_url=None, role="user", password=hashed_password) # we'll set avatar_url later
+
+        user.insert()
+
+        # Generate a pre-signed URL for the avatar upload
+        avatar_key = f'{user.user_name}/{filename}'  # the object key in the S3 bucket
+        put_presigned_url = generate_presigned_url('music-history-user-avatars', avatar_key,  operation='put_object')
+
+       
+        # Now return the put_presigned_url to the client, which will use it to upload the file
+        data = {
+            'success': True,
+            'created': user.id,
+            'user': user.user_name,
+            'put_presigned_url': put_presigned_url,  # send the pre-signed URL to the frontend
+            'avatar_key': avatar_key  # send the object key to the frontend as well
+        }
+
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@api.route("/api/confirm-avatar-upload", methods=['POST'])
+@jwt_required(allowed_roles=["user", "admin"])
+def confirm_avatar_upload():
+    try:
+        # Get the user id and avatar key from the request data
+        user_id = request.json.get('user_id')
+        avatar_key = request.json.get('avatar_key')
+
+        # Fetch the user from the database
+        user = User.query.get(user_id)
+        if user is None:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        # Generate a pre-signed GET URL now that the file has been uploaded
+        get_presigned_url = generate_presigned_url('music-history-user-avatars', avatar_key, operation='get_object')
+
+        # Update the user's avatar_url
+        user.avatar_url = get_presigned_url
+        user.update()
+
+        return jsonify({'success': True, 'get_presigned_url': get_presigned_url})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
+
+@api.route("/api/auth/check-username-availability/<username>", methods=["GET"])
+@cross_origin(origins="https://localhost:3000", allow_headers=["Content-Type", "Authorization"])
+def check_user_name_validity(username):    
+    print(f"uname {username}")
+    exists= User.query.filter_by(user_name=username).first()
+    print(f"exists {exists}")
+    if exists:
+        return jsonify({'available': False}), 409  # Conflict, username is already in use
+    else:
+        return jsonify({'available': True}), 200  # OK, username is available
+
+    
 def generate_jwt_token(user: User) -> str:
     # Read your JWT secret key from the environment
     jwt_secret = os.getenv("JWT_SECRET")
@@ -395,6 +484,8 @@ def decode_jwt_token(encoded_jwt):
     return decoded_jwt
 
 # ----------------------ADD PAGE-------------------------------#
+
+    
 
 
 # @api.route("/categories")

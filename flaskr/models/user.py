@@ -14,6 +14,7 @@ class User(db.Model):  # type: ignore
     email = Column(String(120), nullable=False, unique=True)  # type: ignore
     first_name = Column(String(64))  # type: ignore
     last_name = Column(String(64))  # type: ignore
+    user_name = Column(String(120)) # type: ignore
     avatar_url = Column(String(256))  # type: ignore
     role = Column(String(64))
     created_at = Column(DateTime, nullable=False,
@@ -30,6 +31,7 @@ class User(db.Model):  # type: ignore
         email: str,
         first_name: str,
         last_name: str,
+        user_name: str,
         avatar_url: Optional[str] = None,
         role: Optional[str] = None,
         created_at: Optional[datetime] = None,
@@ -41,6 +43,7 @@ class User(db.Model):  # type: ignore
         self.email = email
         self.first_name = first_name
         self.last_name = last_name
+        self.user_name = user_name
         self.avatar_url = avatar_url
         self.role = role
         self.created_at = created_at if created_at is not None else datetime.utcnow()
@@ -67,6 +70,7 @@ class User(db.Model):  # type: ignore
             'oauth_id': self.oauth_id,
             'first_name': self.first_name,
             'last_name': self.last_name,
+            'user name': self.user_name,
             'email': self.email,
             'avatar_url': self.avatar_url,
             'created_at': self.created_at,
